@@ -15,7 +15,7 @@ The **SILID Voucher Service** replaces legacy hardcoded voucher logic in Silid O
 4. **Staff Review & Instant Issuance:** Staff review pending claims, reject with mandatory feedback, or approve to generate personal voucher QRs (`PV-...`) sent via automated branded email.
 5. **Atomic Checkout Redemption:** Mobile camera scanning and terminal checkout sharing a concurrency-safe atomic lock (`voucher_batch FOR UPDATE` → `personal_voucher FOR UPDATE`).
 6. **Silid OS Integration API:** Versioned HTTP REST API (`/api/v1/...`) with HMAC-SHA256 authenticated API keys, rate limiting, fail-open resilience, and offline sync.
-7. **Reports & Audit Trail:** PHT Business Day reports (6:00 AM – 6:00 AM) that reconcile with the Silid OS Transaction Ledger, complete with reversal capabilities.
+7. **Reports & Audit Trail:** Philippine Standard Time (PST / PHT, GMT+8) reports that reconcile with the Silid OS Transaction Ledger, complete with reversal capabilities.
 
 ---
 
@@ -91,7 +91,7 @@ Browse to:
 - **Fail-Open Strategy:** If the voucher microservice is unreachable, Silid OS logs offline scans without blocking customer study sessions and syncs later via `/api/v1/vouchers/offline-sync`.
 - **Promotion Integrity:** Vouchers strictly **cannot stack** with any other promotion or voucher (`has_other_promotions` check).
 - **Concurrency Locking:** Dual-level locking in PostgreSQL function `atomic_redeem_voucher`: locks `voucher_batch` first to protect batch caps, then `personal_voucher` to prevent double-spending.
-- **Timezone Standard:** Timestamps stored in UTC and rendered in **Asia/Manila (GMT+8)**. The Business Day cutoff runs from **6:00 AM to 6:00 AM PHT**.
+- **Timezone Standard:** Timestamps stored in UTC and rendered in **Philippine Standard Time (PST / PHT, GMT+8)**. Standard calendar days run midnight to midnight (00:00:00 to 23:59:59 PHT) with voucher expiry at 23:59:59.999 PHT.
 
 ---
 

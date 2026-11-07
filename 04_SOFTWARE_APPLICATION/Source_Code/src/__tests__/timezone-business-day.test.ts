@@ -6,7 +6,7 @@ import {
   formatInPHT,
 } from '../lib/timezone';
 
-describe('Timezone & Business Day Cutoff (§4, §7)', () => {
+describe('Philippine Standard Time (PST / PHT, GMT+8) Adherence', () => {
   it('calculates expiry date at end of day in PHT (23:59:59.999 PHT)', () => {
     // Issued at 2026-11-06 10:00:00 UTC (18:00 PHT) with 30 days duration
     const issuedAt = new Date('2026-11-06T10:00:00Z');
@@ -25,19 +25,17 @@ describe('Timezone & Business Day Cutoff (§4, §7)', () => {
     expect(isExpired(expiryDate, justAfter)).toBe(true);
   });
 
-  it('determines Business Day based on 6:00 AM PHT cutoff (§7)', () => {
+  it('determines calendar date adhering strictly to Philippine Standard Time (GMT+8)', () => {
     // 2026-11-06 05:30:00 AM PHT (which is 2026-11-05 21:30:00 UTC)
-    // Since before 6:00 AM PHT, belongs to Business Day 2026-11-05
-    const beforeCutoff = new Date('2026-11-05T21:30:00Z');
-    expect(getBusinessDayPHT(beforeCutoff)).toBe('2026-11-05');
+    // In Philippine Standard Time, 05:30 AM belongs to Nov 6
+    const earlyMorning = new Date('2026-11-05T21:30:00Z');
+    expect(getBusinessDayPHT(earlyMorning)).toBe('2026-11-06');
 
     // 2026-11-06 06:01:00 AM PHT (which is 2026-11-05 22:01:00 UTC)
-    // Since at/after 6:00 AM PHT, belongs to Business Day 2026-11-06
-    const afterCutoff = new Date('2026-11-05T22:01:00Z');
-    expect(getBusinessDayPHT(afterCutoff)).toBe('2026-11-06');
+    const morning = new Date('2026-11-05T22:01:00Z');
+    expect(getBusinessDayPHT(morning)).toBe('2026-11-06');
 
     // 2026-11-06 23:30:00 PM PHT (which is 2026-11-06 15:30:00 UTC)
-    // Belongs to Business Day 2026-11-06
     const evening = new Date('2026-11-06T15:30:00Z');
     expect(getBusinessDayPHT(evening)).toBe('2026-11-06');
   });

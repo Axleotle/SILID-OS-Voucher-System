@@ -77,7 +77,7 @@ export default async function ReportsPage({
         <div>
           <h1>Voucher Reports & Ledger Reconciliation</h1>
           <p style={{ color: 'var(--color-muted)' }}>
-            Audited redemption activity in PHT by Business Day (6:00 AM – 6:00 AM PHT). Matches Silid OS Transaction Ledger.
+            Audited redemption activity in Philippine Standard Time (PST / PHT, GMT+8). Matches Silid OS Transaction Ledger.
           </p>
         </div>
 

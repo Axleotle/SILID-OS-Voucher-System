@@ -362,7 +362,7 @@ describe('Master Client Acceptance Test Suite (TC-01 through TC-75)', () => {
   // Module 9: Business Reports & Audit Trail
   // =========================================================================
   describe('Module 9: Business Reports & Audit Trail (TC-50 - TC-54)', () => {
-    it('TC-50: Computes PHT Business Day with 6:00 AM cutoff', () => {
+    it('TC-50: Computes standard calendar date in Philippine Standard Time (PST/PHT, GMT+8)', () => {
       const bday = getBusinessDayPHT();
       expect(bday).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     });

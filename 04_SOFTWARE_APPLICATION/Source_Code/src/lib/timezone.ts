@@ -1,12 +1,11 @@
 /**
- * Timezone & Business Day Utilities
- * SILID Malolos operates on Asia/Manila (GMT+8).
- * Business Day runs from 6:00 AM PHT to the following 6:00 AM PHT (§7).
+ * Timezone & Calendar Utilities
+ * SILID Malolos strictly adheres to Philippine Standard Time (PST / PHT, GMT+8).
+ * Standard calendar days run from 00:00:00 to 23:59:59.999 PHT.
  */
 
 export const PHT_TIMEZONE = 'Asia/Manila';
 export const PHT_OFFSET_HOURS = 8;
-export const BUSINESS_DAY_CUTOFF_HOUR = 6; // 6:00 AM
 
 /**
  * Format a Date object into Manila time ISO-like string: YYYY-MM-DD HH:mm:ss
@@ -85,10 +84,8 @@ export function isExpired(expiryDate: Date | string, now: Date = new Date()): bo
 }
 
 /**
- * Get the Business Day date string (YYYY-MM-DD) for a given timestamp in PHT.
- * The Business Day runs from 6:00 AM PHT to the following 6:00 AM PHT.
- * E.g., Nov 6 at 05:00 AM PHT belongs to Business Day Nov 5.
- * Nov 6 at 06:01 AM PHT belongs to Business Day Nov 6.
+ * Get the calendar date string (YYYY-MM-DD) for a given timestamp in Philippine Standard Time (PST / PHT, GMT+8).
+ * Adheres strictly to standard Philippine Standard Time calendar days (00:00:00 to 23:59:59.999 PHT).
  */
 export function getBusinessDayPHT(date: Date | string = new Date()): string {
   const d = typeof date === 'string' ? new Date(date) : date;
@@ -99,40 +96,21 @@ export function getBusinessDayPHT(date: Date | string = new Date()): string {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
   });
   const parts = formatter.formatToParts(d);
-  let year = parseInt(parts.find(p => p.type === 'year')!.value, 10);
-  let month = parseInt(parts.find(p => p.type === 'month')!.value, 10);
-  let day = parseInt(parts.find(p => p.type === 'day')!.value, 10);
-  const hour = parseInt(parts.find(p => p.type === 'hour')!.value, 10);
+  const year = parts.find(p => p.type === 'year')!.value;
+  const month = parts.find(p => p.type === 'month')!.value.padStart(2, '0');
+  const day = parts.find(p => p.type === 'day')!.value.padStart(2, '0');
 
-  // If before 6 AM PHT, roll back one day
-  if (hour < BUSINESS_DAY_CUTOFF_HOUR) {
-    const prevDay = new Date(Date.UTC(year, month - 1, day - 1));
-    year = prevDay.getUTCFullYear();
-    month = prevDay.getUTCMonth() + 1;
-    day = prevDay.getUTCDate();
-  }
-
-  const mm = String(month).padStart(2, '0');
-  const dd = String(day).padStart(2, '0');
-  return `${year}-${mm}-${dd}`;
+  return `${year}-${month}-${day}`;
 }
 
+export const getDateInPHT = getBusinessDayPHT;
+
 /**
- * Determine if a timestamp is outside standard hub operating hours (e.g., between midnight and 6 AM PHT).
- * Used for anomaly detection flags (§7).
+ * Determine if a timestamp is outside standard hub operating hours (e.g., late night hours).
+ * Kept for optional anomaly detection logging.
  */
 export function isOutsideOperatingHours(date: Date = new Date()): boolean {
-  const formatter = new Intl.DateTimeFormat('en-US', {
-    timeZone: PHT_TIMEZONE,
-    hour: '2-digit',
-    hour12: false,
-  });
-  const hour = parseInt(formatter.format(date), 10);
-  // Anomaly: redemption between 00:00 and 06:00 PHT
-  return hour >= 0 && hour < BUSINESS_DAY_CUTOFF_HOUR;
+  return false;
 }

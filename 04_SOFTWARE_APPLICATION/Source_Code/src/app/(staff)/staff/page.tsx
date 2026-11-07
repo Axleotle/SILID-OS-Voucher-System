@@ -64,7 +64,7 @@ export default async function StaffDashboardPage() {
           <span className={styles.kicker}>Hub Operational Overview</span>
           <h1>Staff Voucher Center</h1>
           <p style={{ color: 'var(--color-muted)' }}>
-            Current Business Day: <strong>{todayBusinessDay}</strong> (6:00 AM – 6:00 AM PHT)
+            Philippine Standard Time (PST / PHT, GMT+8): <strong>{todayBusinessDay}</strong>
           </p>
         </div>
 

@@ -1,0 +1,6 @@
+code,type,value,notes
+OLD-PERC-20,PERCENTAGE,20,20% discount on study pass
+OLD-PERC-50,PERCENTAGE,50,50% discount on study pass
+OLD-FIXED-100,FIXED_AMOUNT,100,Legacy ₱100 off (classified as legacy_unsupported)
+OLD-FREE-3HR,FREE_HOURS,3,Legacy 3 free hours (classified as legacy_unsupported)
+OLD-PERC-15,PERCENTAGE,15,15% discount for freshman week

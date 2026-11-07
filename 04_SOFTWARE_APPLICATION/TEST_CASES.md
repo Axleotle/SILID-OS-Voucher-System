@@ -47,7 +47,7 @@ npm test
 
 ### Automated Suites Summary
 1. **`pricing-strategy.test.ts`**: Verifies percentage discounts (1–100%), 100% free passes, non-discountable exclusions, and disabled legacy strategies.
-2. **`timezone-business-day.test.ts`**: Verifies Asia/Manila (GMT+8), the 6:00 AM cutoff boundary, and end-of-day (23:59:59.999 PHT) expiry calculations.
+2. **`timezone-business-day.test.ts`**: Verifies Philippine Standard Time (PST / PHT, GMT+8) adherence, midnight-to-midnight calendar days, and end-of-day (23:59:59.999 PHT) expiry calculations.
 3. **`api-validation-rules.test.ts`**: Verifies eligibility checks, discount calculations on eligible items, and strict rejection of promotion stacking (`NO_STACKING`).
 4. **`atomic-redemption.test.ts`**: Verifies two-phase row locking, single-use guarantees, batch caps (`maxRedemptions`), and reversal state restoration.
 5. **`database-rules.test.ts`**: Verifies database triggers (`claim_ticket.batch_id = registration.batch_id`), 1-to-1 Approved registration issuance, and rejection QR prohibition.
@@ -529,12 +529,12 @@ npm test
 
 ## Module 9: Business Reports & Audit Trail (§7)
 
-### TC-50: PHT Business Day Operational Dashboard (6:00 AM – 6:00 AM)
+### TC-50: Philippine Standard Time (PST / PHT, GMT+8) Operational Dashboard
 - **Actor:** Hub Manager / Founder
 - **Steps:**
-  1. Open `/staff` at 11:00 PM and at 3:00 AM.
+  1. Open `/staff`.
 - **Expected Result:**
-  - Both sessions report the same PHT Business Day date (cutoff is at 6:00 AM PHT).
+  - Reports current date strictly adhering to Philippine Standard Time calendar dates (PHT, GMT+8).
 
 ### TC-51: Reconciled Daily Reports Screen
 - **Actor:** Hub Manager
