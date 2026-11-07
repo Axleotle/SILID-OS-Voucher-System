@@ -88,8 +88,8 @@ BEGIN
   SELECT * INTO v_batch FROM voucher_batch WHERE batch_id = v_reg.batch_id FOR UPDATE;
   SELECT * INTO v_voucher FROM personal_voucher WHERE personal_voucher_id = v_voucher.personal_voucher_id FOR UPDATE;
   SELECT * INTO v_tmpl FROM voucher_template WHERE template_id = v_batch.template_id;
-  IF v_voucher.status <> 'Active' THEN
-    RAISE EXCEPTION '[VOUCHER_%] Status is %. Must be Active.', UPPER(v_voucher.status::text), v_voucher.status;
+  IF v_voucher.status NOT IN ('Active', 'Held') THEN
+    RAISE EXCEPTION '[VOUCHER_%] Status is %. Must be Active or Held.', UPPER(v_voucher.status::text), v_voucher.status;
   END IF;
   IF v_voucher.expiry_date < now() THEN
     UPDATE personal_voucher SET status='Expired' WHERE personal_voucher_id=v_voucher.personal_voucher_id;

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { createAdminClient } from '../lib/supabase/admin';
-import { getMockStore } from '../lib/mock-store';
-import { validateVoucher, redeemVoucher } from '../lib/voucher-validator';
+import { getMockStore, resetMockStore } from '../lib/mock-store';
+import { validateVoucher, redeemVoucher, reverseRedemption } from '../lib/voucher-validator';
 import { PercentageDiscountStrategy } from '../lib/pricing/percentage';
 import { calculateExpiryDate, getBusinessDayPHT, formatDisplayPHT, isExpired } from '../lib/timezone';
 import { QRCodeGenerator } from '../lib/qr';
@@ -14,8 +14,8 @@ describe('Master Client Acceptance Test Suite (TC-01 through TC-75)', () => {
   let store: any;
 
   beforeEach(() => {
+    store = resetMockStore();
     admin = createAdminClient();
-    store = getMockStore();
   });
 
   // =========================================================================
@@ -446,6 +446,51 @@ describe('Master Client Acceptance Test Suite (TC-01 through TC-75)', () => {
       expect(discountResult.grossAmount).toBe(300);
       expect(discountResult.discountAmount).toBe(60);
       expect(discountResult.netAmount).toBe(240);
+    });
+
+    it('TC-70: Publishes and pulls outbox events for Silid OS Transaction Ledger (Step 4)', async () => {
+      // 1. Redeem
+      const redeemRes = await redeemVoucher({
+        personalQrCode: 'PV-DEMO-SEED-001',
+        source: 'silid_os_pos',
+        sessionRef: 'SES-SIM-001',
+      });
+      expect(redeemRes.success).toBe(true);
+
+      // 2. Outbox should contain VOUCHER_REDEEMED event
+      const outbox = store.ledger_outbox;
+      const event = outbox.find((e: any) => e.event_type === 'VOUCHER_REDEEMED' && e.payload?.session_ref === 'SES-SIM-001');
+      expect(event).toBeDefined();
+      expect(event.payload.session_ref).toBe('SES-SIM-001');
+
+      // 3. Reverse
+      const revRes = await reverseRedemption({
+        redemptionId: redeemRes.redemptionId!,
+        reversedByStaffId: 'staff-sim-001',
+        reversalReason: 'Customer voided session in Simulator',
+      });
+      expect(revRes.success).toBe(true);
+
+      // 4. Outbox should contain VOUCHER_REVERSED event
+      const revEvent = outbox.find((e: any) => e.event_type === 'VOUCHER_REVERSED');
+      expect(revEvent).toBeDefined();
+      expect(revEvent.payload.redemption_id).toBe(redeemRes.redemptionId);
+    });
+
+    it('TC-71: Processes Fail-Open Offline Sync batch (Step 5)', async () => {
+      const offlineVoucher = 'PV-DEMO-SEED-002';
+      const res = await redeemVoucher({
+        personalQrCode: offlineVoucher,
+        source: 'offline_sync',
+        sessionRef: 'OFFLINE-9999',
+        idempotencyKey: 'off_idemp_key_001',
+      });
+
+      expect(res.success).toBe(true);
+      expect(res.redemptionId).toBeDefined();
+
+      const pv = store.personal_voucher.find((v: any) => v.personal_qr_code === offlineVoucher);
+      expect(pv.status).toBe('Redeemed');
     });
   });
 });

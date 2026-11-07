@@ -1,11 +1,21 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { QRCodeGenerator } from '@/lib/qr';
 import { writeAuditLog } from '@/lib/audit';
 
-export async function createBatchAction(formData: FormData) {
+export type BatchActionState = {
+  success: boolean | null;
+  error: string | null;
+  batchId?: string;
+};
+
+/** useActionState-compatible server action — prevState is required by React 19 useActionState. */
+export async function createBatchAction(
+  prevState: BatchActionState,
+  formData: FormData,
+): Promise<BatchActionState> {
   const admin = createAdminClient();
 
   const templateId = (formData.get('templateId') as string || '').trim();
@@ -110,8 +120,6 @@ export async function createBatchAction(formData: FormData) {
     },
   });
 
-  try {
-    revalidatePath('/staff/batches');
-  } catch {}
-  return { success: true, batchId: batch.batch_id };
+  // Redirect to the new batch's ticket preview — no revalidatePath needed (redirect causes page reload)
+  redirect(`/staff/batches?viewBatch=${batch.batch_id}`);
 }

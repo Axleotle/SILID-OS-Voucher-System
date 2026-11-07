@@ -97,8 +97,8 @@ BEGIN
   --    application layer last checked)
   -- -------------------------------------------------------------------------
 
-  -- Voucher status
-  IF v_voucher.status <> 'Active' THEN
+  -- Voucher status (can be redeemed from Active or from an ongoing Held session)
+  IF v_voucher.status NOT IN ('Active', 'Held') THEN
     RAISE EXCEPTION '[VOUCHER_%] Voucher is not active (status: %).',
       UPPER(v_voucher.status), v_voucher.status;
   END IF;

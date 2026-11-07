@@ -89,7 +89,7 @@ button, .btn, a.btn {
   font-size: 0.95rem;
   font-weight: 600;
   background: var(--color-surface);
-  color: var(--color-ink) !important;
+  color: var(--color-ink);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -103,7 +103,7 @@ button, .btn, a.btn {
 button:hover:not(:disabled), .btn:hover, a.btn:hover {
   background: #f0ebe2;
   border-color: #cfc5b4;
-  color: var(--color-ink) !important;
+  color: var(--color-ink);
   text-decoration: none !important;
 }
 
@@ -196,6 +196,12 @@ label {
   border-radius: var(--radius-lg);
   padding: 24px;
   box-shadow: var(--shadow-sm);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

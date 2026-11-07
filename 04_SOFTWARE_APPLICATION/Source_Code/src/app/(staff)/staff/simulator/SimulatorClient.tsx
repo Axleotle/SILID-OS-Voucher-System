@@ -48,6 +48,13 @@ export default function SimulatorClient({ availableVouchers }: SimulatorClientPr
   const [heldSessions, setHeldSessions] = useState<Array<{ sessionRef: string; voucherCode: string; heldAt: string }>>([]);
   const [ledgerEvents, setLedgerEvents] = useState<any[]>([]);
 
+  // Step 4 & 5 specific states
+  const [reverseCode, setReverseCode] = useState(voucherCode);
+  const [reverseSessionRef, setReverseSessionRef] = useState(sessionRef);
+  const [reverseReason, setReverseReason] = useState('Customer cancelled study session via Silid OS Simulator');
+  const [offlineCode, setOfflineCode] = useState('PV-DEMO-SEED-002');
+  const [offlineSessionRef, setOfflineSessionRef] = useState('OFFLINE-1002');
+
   // Calculate cart total
   const cartItems = AVAILABLE_PRODUCTS.filter((p) => selectedProductCodes.includes(p.productCode));
   const grossAmount = cartItems.reduce((sum, item) => sum + item.unitPrice, 0);
@@ -149,14 +156,16 @@ export default function SimulatorClient({ availableVouchers }: SimulatorClientPr
     });
 
     if (res.ok) {
+      setReverseCode(voucherCode.trim());
+      setReverseSessionRef(sessionRef.trim());
       setReceiptData({
         sessionRef,
         voucherCode: voucherCode.trim(),
         cartItems,
         grossAmount,
-        discountAmount: res.data?.discount_result?.discountAmount ?? (grossAmount * 0.2),
-        netAmount: res.data?.discount_result?.netAmount ?? (grossAmount * 0.8),
-        discountPercent: res.data?.discount_result?.discountPercent ?? 20,
+        discountAmount: res.data?.discount_amount ?? res.data?.discount_result?.discountAmount ?? (grossAmount * 0.2),
+        netAmount: res.data?.net_amount ?? res.data?.discount_result?.netAmount ?? (grossAmount * 0.8),
+        discountPercent: res.data?.discount_percent ?? res.data?.discount_result?.discountPercent ?? 20,
         redeemedAt: new Date().toLocaleString(),
         receiptText: res.data?.receipt_text,
       });
@@ -175,26 +184,26 @@ export default function SimulatorClient({ availableVouchers }: SimulatorClientPr
 
   // 6. Reverse Redemption
   async function handleReverse() {
-    await callApi('/api/v1/vouchers/reverse', 'POST', {
-      personal_qr_code: voucherCode.trim(),
-      session_ref: sessionRef.trim(),
-      reason: 'Customer cancelled study session via Silid OS Simulator',
+    const res = await callApi('/api/v1/vouchers/reverse', 'POST', {
+      personal_qr_code: reverseCode.trim() || undefined,
+      session_ref: reverseSessionRef.trim() || undefined,
+      reason: reverseReason.trim() || 'Customer cancelled study session via Silid OS Simulator',
     });
+    if (res.ok) {
+      await handlePullLedger();
+    }
   }
 
   // 7. Offline Sync
   async function handleOfflineSync() {
+    const codeToSync = offlineCode.trim() || 'PV-DEMO-SEED-002';
     await callApi('/api/v1/vouchers/offline-sync', 'POST', {
-      redemptions: [
+      entries: [
         {
-          personal_qr_code: voucherCode.trim(),
-          source: 'silid_os_offline',
-          session_ref: `OFFLINE-${Date.now().toString().slice(-4)}`,
-          gross_amount: 180,
-          discount_amount: 36,
-          net_amount: 144,
-          redeemed_at: new Date().toISOString(),
+          personal_qr_code: codeToSync,
+          session_ref: offlineSessionRef.trim() || `OFFLINE-${Date.now().toString().slice(-4)}`,
           idempotency_key: `offline_key_${Date.now()}`,
+          redeemed_at: new Date().toISOString(),
         },
       ],
     });
@@ -497,17 +506,72 @@ export default function SimulatorClient({ availableVouchers }: SimulatorClientPr
               >
                 {loading ? 'Processing Atomic Checkout…' : '💳 Complete Checkout & Redeem Voucher'}
               </button>
+
+              {lastResponse?.data?.reason_code === 'VOUCHER_REDEEMED' && (
+                <div style={{ marginTop: 10, fontSize: '0.82rem', background: '#fffbeb', border: '1px solid #fef3c7', padding: '10px 14px', borderRadius: 'var(--radius-sm)', color: '#92400e', lineHeight: 1.4 }}>
+                  ℹ️ <strong>Expected Anti-Fraud Protection:</strong> This voucher has already been redeemed and cannot be used twice. To test again with this voucher, switch to <strong>Tab 4</strong> to reverse it back to Active, or pick a different voucher in Tab 1.
+                </div>
+              )}
             </>
           )}
 
           {activeTab === 'ledger' && (
             <>
-              <h2 style={{ fontSize: '1.2rem', margin: 0 }}>Transaction Ledger Integration (Silid OS)</h2>
+              <h2 style={{ fontSize: '1.2rem', margin: 0 }}>Step 4: Transaction Ledger & Webhooks (Silid OS)</h2>
               <p style={{ color: 'var(--color-muted)', fontSize: '0.86rem', margin: 0 }}>
-                Silid OS pulls signed ledger events or receives webhooks for redemptions, reversals, and expirations.
+                Silid OS pulls signed ledger events to reconcile cashier books. If an attendant cancels a session or corrects an input error, reversing the redemption restores the voucher to <code>Active</code>.
               </p>
 
-              <div style={{ display: 'flex', gap: 10 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <label>
+                  Session Ref to Reverse
+                  <input
+                    type="text"
+                    value={reverseSessionRef}
+                    onChange={(e) => setReverseSessionRef(e.target.value)}
+                    placeholder="SESS-1001"
+                  />
+                </label>
+                <label>
+                  Personal Voucher Code
+                  <input
+                    type="text"
+                    value={reverseCode}
+                    onChange={(e) => setReverseCode(e.target.value)}
+                    placeholder="PV-DEMO-SEED-001"
+                    style={{ fontFamily: 'var(--font-mono)' }}
+                  />
+                </label>
+              </div>
+
+              <label>
+                Reversal Reason
+                <input
+                  type="text"
+                  value={reverseReason}
+                  onChange={(e) => setReverseReason(e.target.value)}
+                  placeholder="e.g. Attendant error / Customer voided session"
+                />
+              </label>
+
+              {receiptData && (
+                <div style={{ fontSize: '0.8rem', background: '#eef6f2', padding: '8px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid #c7e2d4', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span>Last completed checkout: <strong>{receiptData.voucherCode}</strong> ({receiptData.sessionRef})</span>
+                  <button
+                    type="button"
+                    className="btn"
+                    style={{ padding: '2px 8px', fontSize: '0.75rem' }}
+                    onClick={() => {
+                      setReverseCode(receiptData.voucherCode);
+                      setReverseSessionRef(receiptData.sessionRef);
+                    }}
+                  >
+                    Load into Reversal Form
+                  </button>
+                </div>
+              )}
+
+              <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
                 <button
                   type="button"
                   className="btn btn-primary"
@@ -559,25 +623,85 @@ export default function SimulatorClient({ availableVouchers }: SimulatorClientPr
                   </div>
                 )}
               </div>
+              <div style={{ marginTop: 12, padding: 12, background: '#f5f3ec', borderRadius: 'var(--radius-sm)', fontSize: '0.82rem', color: 'var(--color-muted)', lineHeight: 1.5 }}>
+                <strong>How Step 4 Works:</strong>
+                <ul style={{ margin: '4px 0 0 18px', padding: 0 }}>
+                  <li><strong>Pull Ledger Events:</strong> When redemptions occur in Silid OS, signed event records (e.g. <code>VOUCHER_REDEEMED</code>) are appended to the outbox. Silid OS periodically pulls this stream via <code>/api/v1/ledger/pull</code> to audit cash drawers.</li>
+                  <li><strong>Reverse Redemption:</strong> If a student leaves early or cashier makes an input error, Silid OS calls <code>/api/v1/vouchers/reverse</code>. This restores the voucher back to <code>Active</code> and automatically publishes a <code>VOUCHER_REVERSED</code> ledger entry.</li>
+                </ul>
+              </div>
             </>
           )}
 
           {activeTab === 'offline' && (
             <>
-              <h2 style={{ fontSize: '1.2rem', margin: 0 }}>Fail-Open & Offline Sync (Silid OS)</h2>
+              <h2 style={{ fontSize: '1.2rem', margin: 0 }}>Step 5: Fail-Open & Offline Sync (Silid OS)</h2>
               <p style={{ color: 'var(--color-muted)', fontSize: '0.86rem', margin: 0 }}>
                 If the voucher microservice is temporarily unreachable, Silid OS logs offline redemptions locally without blocking student entry, and syncs them once back online.
               </p>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <label>
+                  Simulated Session Ref
+                  <input
+                    type="text"
+                    value={offlineSessionRef}
+                    onChange={(e) => setOfflineSessionRef(e.target.value)}
+                    placeholder="OFFLINE-1002"
+                  />
+                </label>
+                <label>
+                  Voucher to Sync (PV-...)
+                  <input
+                    type="text"
+                    value={offlineCode}
+                    onChange={(e) => setOfflineCode(e.target.value)}
+                    placeholder="PV-DEMO-SEED-002"
+                    style={{ fontFamily: 'var(--font-mono)' }}
+                  />
+                </label>
+              </div>
+
+              <div style={{ fontSize: '0.8rem', background: '#eef6f2', padding: '8px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid #c7e2d4' }}>
+                <span style={{ fontWeight: 600, color: 'var(--color-primary-dark)' }}>💡 Quick Select Offline Voucher:</span>
+                <div style={{ marginTop: 6, display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    style={{ padding: '2px 8px', fontSize: '0.75rem' }}
+                    onClick={() => setOfflineCode('PV-DEMO-SEED-002')}
+                  >
+                    PV-DEMO-SEED-002 (Fresh Active Demo Voucher)
+                  </button>
+                  <button
+                    type="button"
+                    className="btn"
+                    style={{ padding: '2px 8px', fontSize: '0.75rem' }}
+                    onClick={() => setOfflineCode('PV-DEMO-SEED-001')}
+                  >
+                    PV-DEMO-SEED-001 (Primary Demo Voucher)
+                  </button>
+                </div>
+              </div>
 
               <button
                 type="button"
                 className="btn btn-primary"
                 onClick={handleOfflineSync}
                 disabled={loading}
-                style={{ height: 44 }}
+                style={{ height: 44, marginTop: 4 }}
               >
-                📡 Submit Simulated Offline Redemptions Batch
+                {loading ? 'Transmitting Batch…' : '📡 Submit Simulated Offline Redemptions Batch'}
               </button>
+
+              <div style={{ marginTop: 14, padding: 12, background: '#f5f3ec', borderRadius: 'var(--radius-sm)', fontSize: '0.82rem', color: 'var(--color-muted)', lineHeight: 1.5 }}>
+                <strong>How Step 5 Works:</strong>
+                <ul style={{ margin: '4px 0 0 18px', padding: 0 }}>
+                  <li><strong>Fail-Open Guarantee:</strong> Study hubs cannot stall student ingress when PLDT/Globe fiber flickers. Silid OS locally records the discount with a cryptographic idempotency key.</li>
+                  <li><strong>Batch Reconciliation:</strong> When online, Silid OS sends an array of entries to <code>POST /api/v1/vouchers/offline-sync</code>.</li>
+                  <li><strong>Idempotency Safety:</strong> If network cuts mid-sync and the batch is resent, the service recognizes already-processed keys and returns safe responses without charging or discounting twice.</li>
+                </ul>
+              </div>
             </>
           )}
         </div>

@@ -24,4 +24,23 @@ describe('Redemption Invariants & Appendix Implementation Rules (§4, §6)', () 
     const hasPersonalVoucher = status === 'Approved';
     expect(hasPersonalVoucher).toBe(false);
   });
+
+  it('allows checkout redemption for vouchers in Held status', async () => {
+    const { createAdminClient } = await import('../lib/supabase/admin');
+    const { redeemVoucher } = await import('../lib/voucher-validator');
+    const { getMockStore } = await import('../lib/mock-store');
+    
+    const store = getMockStore();
+    const pv = store.personal_voucher.find((v: any) => v.personal_qr_code === 'PV-DEMO-SEED-001');
+    pv.status = 'Held';
+
+    const res = await redeemVoucher({
+      personalQrCode: 'PV-DEMO-SEED-001',
+      source: 'api_v1',
+      sessionRef: 'SES-CHECKOUT-TEST',
+    });
+
+    expect(res.success).toBe(true);
+    expect(pv.status).toBe('Redeemed');
+  });
 });

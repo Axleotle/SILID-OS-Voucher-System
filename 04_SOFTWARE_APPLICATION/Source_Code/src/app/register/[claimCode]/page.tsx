@@ -17,12 +17,14 @@ async function getTicketInfo(claimCode: string) {
       claim_ticket_id,
       claim_code,
       status,
+      batch_id,
       voucher_batch:batch_id (
         batch_id,
         event_name,
         event_date,
         claim_deadline,
         status,
+        template_id,
         voucher_template:template_id (
           template_name,
           benefit_value,
@@ -32,9 +34,34 @@ async function getTicketInfo(claimCode: string) {
       )
     `)
     .eq('claim_code', claimCode.trim())
-    .single();
+    .maybeSingle();
 
-  return ticket;
+  if (!ticket) return null;
+
+  let batch = ticket.voucher_batch as any;
+  if (!batch && (ticket as any).batch_id) {
+    const { data: b } = await admin
+      .from('voucher_batch')
+      .select('*')
+      .eq('batch_id', (ticket as any).batch_id)
+      .maybeSingle();
+    batch = b;
+  }
+
+  let template = batch?.voucher_template as any;
+  if (!template && batch?.template_id) {
+    const { data: t } = await admin
+      .from('voucher_template')
+      .select('*')
+      .eq('template_id', batch.template_id)
+      .maybeSingle();
+    template = t;
+  }
+
+  return {
+    ...ticket,
+    voucher_batch: batch ? { ...batch, voucher_template: template } : null,
+  };
 }
 
 export default async function StudentRegisterPage({
@@ -66,9 +93,13 @@ export default async function StudentRegisterPage({
   const template = batch?.voucher_template as any;
 
   // Deadline check (in PHT calendar day)
-  const isDeadlinePassed = new Date(batch.claim_deadline + 'T23:59:59+08:00').getTime() < Date.now();
+  const isDeadlinePassed = batch?.claim_deadline
+    ? new Date(batch.claim_deadline + 'T23:59:59+08:00').getTime() < Date.now()
+    : false;
   const isTicketClaimed = ticket.status !== 'Available';
-  const isBatchClosed = !['Active', 'Draft', 'PartiallyUsed'].includes(batch.status);
+  const isBatchClosed = batch?.status
+    ? !['Active', 'Draft', 'PartiallyUsed'].includes(batch.status)
+    : false;
 
   return (
     <div className={styles.scene}>

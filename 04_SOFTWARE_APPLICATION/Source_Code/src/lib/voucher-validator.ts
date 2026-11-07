@@ -316,6 +316,26 @@ export async function redeemVoucher(opts: {
     }),
   }).catch(() => {});
 
+  // Queue into ledger_outbox for Silid OS Transaction Ledger synchronization
+  admin
+    .from('ledger_outbox')
+    .insert({
+      event_type: 'VOUCHER_REDEEMED',
+      payload: {
+        redemption_id: result.redemption_id,
+        personal_qr_code: opts.personalQrCode,
+        source: opts.source,
+        session_ref: opts.sessionRef,
+        discount_amount: result.discount_amount ?? 0,
+        gross_amount: result.gross_amount ?? 0,
+        net_amount: result.net_amount ?? 0,
+        redeemed_at: new Date().toISOString(),
+      },
+      status: 'sent',
+      sent_at: new Date().toISOString(),
+    })
+    .catch(() => {});
+
   const discountResult: DiscountResult | undefined =
     result.discount_amount != null
       ? {
@@ -415,6 +435,21 @@ export async function reverseRedemption(opts: {
     entityId: opts.redemptionId,
     afterValue: { reversalReason: opts.reversalReason },
   }).catch(() => {});
+
+  // Queue reversal event into ledger_outbox
+  admin
+    .from('ledger_outbox')
+    .insert({
+      event_type: 'VOUCHER_REVERSED',
+      payload: {
+        redemption_id: opts.redemptionId,
+        reversal_reason: opts.reversalReason,
+        reversed_at: now,
+      },
+      status: 'sent',
+      sent_at: now,
+    })
+    .catch(() => {});
 
   return { success: true };
 }

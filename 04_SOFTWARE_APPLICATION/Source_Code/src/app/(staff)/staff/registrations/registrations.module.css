@@ -26,11 +26,22 @@
   font-weight: 600;
   text-decoration: none;
   color: var(--color-muted);
+  transition: all 0.15s ease;
+}
+
+.filterTab:hover {
+  background: var(--color-primary-light);
+  color: var(--color-primary-dark);
 }
 
 .filterTabActive {
-  background: var(--color-primary-light);
-  color: var(--color-primary);
+  background: var(--color-primary);
+  color: #ffffff !important;
+}
+
+.filterTabActive:hover {
+  background: var(--color-primary-dark);
+  color: #ffffff !important;
 }
 
 .list {

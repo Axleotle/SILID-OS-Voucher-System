@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
+import crypto from 'crypto';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { writeAuditLog } from '@/lib/audit';
 
@@ -72,17 +73,25 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const batch = ticket.voucher_batch as any;
+  let batch = ticket.voucher_batch as any;
+  if (!batch && (ticket as any).batch_id) {
+    const { data: b } = await admin
+      .from('voucher_batch')
+      .select('*')
+      .eq('batch_id', (ticket as any).batch_id)
+      .maybeSingle();
+    batch = b;
+  }
 
   // Check claim deadline (using server time — cannot trust client clock)
-  if (new Date(batch.claim_deadline) < new Date()) {
+  if (batch?.claim_deadline && new Date(batch.claim_deadline) < new Date()) {
     return Response.json(
       { error: { code: 'DEADLINE_PASSED', message: 'The claim deadline for this voucher has passed.' } },
       { status: 422 },
     );
   }
 
-  if (!['Active', 'Draft', 'PartiallyUsed'].includes(batch.status)) {
+  if (batch?.status && !['Active', 'Draft', 'PartiallyUsed'].includes(batch.status)) {
     return Response.json(
       { error: { code: 'BATCH_CLOSED', message: 'This voucher batch is no longer accepting registrations.' } },
       { status: 422 },
@@ -109,6 +118,8 @@ export async function POST(req: NextRequest) {
     .from('student')
     .upsert({ student_id, student_name, email, mobile_number }, { onConflict: 'student_id' });
 
+  const generatedToken = crypto.randomBytes(24).toString('hex');
+
   // Create registration
   const { data: registration, error: regError } = await admin
     .from('registration')
@@ -117,6 +128,7 @@ export async function POST(req: NextRequest) {
       batch_id: batch.batch_id,
       claim_ticket_id: ticket.claim_ticket_id,
       status: 'Pending',
+      status_token: generatedToken,
     })
     .select()
     .single();
@@ -149,12 +161,15 @@ export async function POST(req: NextRequest) {
     ipAddress: req.headers.get('x-forwarded-for') ?? undefined,
   }).catch(() => {});
 
+  const token = registration?.status_token || generatedToken;
+  const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000').replace(/\/+$/, '');
+
   return Response.json(
     {
       success: true,
       registration_id: registration.registration_id,
-      status_token: registration.status_token,
-      status_url: `${process.env.NEXT_PUBLIC_APP_URL}/status/${registration.status_token}`,
+      status_token: token,
+      status_url: `${baseUrl}/status/${token}`,
       message:
         'Registration submitted successfully. You will receive an email when your voucher is ready.',
     },

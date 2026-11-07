@@ -8,12 +8,17 @@ const entrySchema = z.object({
   /** Idempotency key is mandatory for offline sync to guarantee exactly-once processing. */
   idempotency_key: z.string().min(1),
   session_ref: z.string().optional(),
-  redeemed_at: z.string().datetime().optional(),
+  redeemed_at: z.string().optional(),
 });
 
 const schema = z.object({
-  entries: z.array(entrySchema).min(1).max(100),
-});
+  entries: z.array(entrySchema).optional(),
+  redemptions: z.array(entrySchema).optional(),
+}).refine((data) => (data.entries && data.entries.length > 0) || (data.redemptions && data.redemptions.length > 0), {
+  message: 'Must provide an entries or redemptions array.',
+}).transform((data) => ({
+  entries: (data.entries || data.redemptions)!,
+}));
 
 export async function POST(req: NextRequest) {
   const auth = await authenticateApiKey(req);

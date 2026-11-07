@@ -1,8 +1,8 @@
 import React from 'react';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { createBatchAction } from './actions';
 import { QRCodeGenerator } from '@/lib/qr';
 import { PrintButton } from '@/components/staff/PrintButton';
+import { BatchForm } from './BatchForm';
 import styles from './batches.module.css';
 
 export const metadata = {
@@ -99,95 +99,7 @@ export default async function BatchesPage({
           + Generate New Voucher Batch
         </summary>
 
-        <form action={createBatchAction as any} className={styles.formGrid} style={{ marginTop: 16 }}>
-          <label>
-            Voucher Template *
-            <select name="templateId" required defaultValue={templates[0]?.template_id || ''}>
-              {templates.length === 0 ? (
-                <option value="" disabled>No active templates found — create one in Templates</option>
-              ) : (
-                templates.map((t: any, idx: number) => {
-                  const id = t.template_id || t.id || `tmpl-${idx}`;
-                  return (
-                    <option key={id} value={id}>
-                      {t.template_name} ({t.benefit_value}% off)
-                    </option>
-                  );
-                })
-              )}
-            </select>
-          </label>
-
-          <label>
-            Event / Campaign Name *
-            <input
-              name="eventName"
-              type="text"
-              required
-              placeholder="e.g. Youth on the Rock Malolos Summit 2026"
-            />
-          </label>
-
-          <label>
-            Event Date *
-            <input
-              name="eventDate"
-              type="date"
-              required
-              defaultValue={new Date().toISOString().split('T')[0]}
-            />
-          </label>
-
-          <label>
-            Claim Deadline *
-            <input
-              name="claimDeadline"
-              type="date"
-              required
-              defaultValue={new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0]}
-            />
-          </label>
-
-          <label>
-            Batch Quantity (Tickets to print) *
-            <input
-              name="batchQuantity"
-              type="number"
-              min="1"
-              max="500"
-              defaultValue="20"
-              required
-            />
-          </label>
-
-          <label>
-            Max Redemptions (Batch-wide Cap) *
-            <input
-              name="maxRedemptions"
-              type="number"
-              min="1"
-              max="500"
-              defaultValue="20"
-              required
-            />
-          </label>
-
-          <label>
-            Code Prefix (Optional)
-            <input
-              name="codePrefix"
-              type="text"
-              defaultValue="CT-YTR"
-              placeholder="e.g. CT-YTR"
-            />
-          </label>
-
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
-            <button type="submit" className="btn btn-primary" style={{ minWidth: 200 }}>
-              Generate Batch & QRs
-            </button>
-          </div>
-        </form>
+        <BatchForm templates={templates} />
       </details>
 
       {/* Ticket QR Cards Preview & Print Sheet (if a batch is selected) */}

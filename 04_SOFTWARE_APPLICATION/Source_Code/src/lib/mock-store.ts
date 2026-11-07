@@ -179,6 +179,15 @@ function initStore(): MockStore {
         expiry_date: new Date(Date.now() + 30 * 86400000).toISOString(),
         status: 'Active',
       },
+      {
+        personal_voucher_id: 'f0000000-0000-0000-0000-000000000002',
+        registration_id: 'e0000000-0000-0000-0000-000000000001',
+        issued_by_staff_id: 'a0000000-0000-0000-0000-000000000001',
+        personal_qr_code: 'PV-DEMO-SEED-002',
+        issued_at: new Date().toISOString(),
+        expiry_date: new Date(Date.now() + 30 * 86400000).toISOString(),
+        status: 'Active',
+      },
     ],
     redemption: [],
     feature_flag: [
@@ -204,7 +213,23 @@ function initStore(): MockStore {
       },
     ],
     audit_log: [],
-    ledger_outbox: [],
+    ledger_outbox: [
+      {
+        outbox_id: 'outbox-demo-001',
+        event_type: 'VOUCHER_REDEEMED',
+        payload: {
+          personal_qr_code: 'PV-DEMO-SEED-001',
+          source: 'silid_os_pos',
+          session_ref: 'SES-MALOLOS-001',
+          discount_amount: 36,
+          net_amount: 144,
+          redeemed_at: new Date().toISOString(),
+        },
+        status: 'sent',
+        sent_at: new Date().toISOString(),
+        created_at: new Date().toISOString(),
+      },
+    ],
     email_outbox: [],
     legacy_voucher: [],
   };
@@ -214,5 +239,10 @@ export function getMockStore(): MockStore {
   if (!globalMock.__SILID_MOCK_STORE__) {
     globalMock.__SILID_MOCK_STORE__ = initStore();
   }
+  return globalMock.__SILID_MOCK_STORE__;
+}
+
+export function resetMockStore(): MockStore {
+  globalMock.__SILID_MOCK_STORE__ = initStore();
   return globalMock.__SILID_MOCK_STORE__;
 }

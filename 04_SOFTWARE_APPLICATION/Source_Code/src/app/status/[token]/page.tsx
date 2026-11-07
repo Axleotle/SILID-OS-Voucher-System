@@ -42,7 +42,52 @@ async function getStatusData(token: string) {
 
   if (!reg) return null;
 
-  const pv = Array.isArray(reg.personal_voucher) ? reg.personal_voucher[0] : reg.personal_voucher;
+  let pv = Array.isArray(reg.personal_voucher) ? reg.personal_voucher[0] : reg.personal_voucher;
+  if (!pv && reg.registration_id) {
+    const { data: foundPv } = await admin
+      .from('personal_voucher')
+      .select('*')
+      .eq('registration_id', reg.registration_id)
+      .maybeSingle();
+    pv = foundPv;
+  }
+
+  let student = reg.student as any;
+  if (!student && (reg as any).student_id) {
+    const { data: s } = await admin
+      .from('student')
+      .select('*')
+      .eq('student_id', (reg as any).student_id)
+      .maybeSingle();
+    student = s;
+  }
+
+  let batch = reg.voucher_batch as any;
+  if (!batch && (reg as any).batch_id) {
+    const { data: b } = await admin
+      .from('voucher_batch')
+      .select('*')
+      .eq('batch_id', (reg as any).batch_id)
+      .maybeSingle();
+    batch = b;
+  }
+
+  let template = batch?.voucher_template as any;
+  if (!template && batch?.template_id) {
+    const { data: t } = await admin
+      .from('voucher_template')
+      .select('*')
+      .eq('template_id', batch.template_id)
+      .maybeSingle();
+    template = t;
+  }
+
+  const enrichedReg = {
+    ...reg,
+    student,
+    voucher_batch: batch ? { ...batch, voucher_template: template } : null,
+  };
+
   let qrDataUrl: string | null = null;
 
   if (pv && pv.personal_qr_code) {
@@ -54,7 +99,7 @@ async function getStatusData(token: string) {
   }
 
   return {
-    registration: reg,
+    registration: enrichedReg,
     personalVoucher: pv,
     qrDataUrl,
   };

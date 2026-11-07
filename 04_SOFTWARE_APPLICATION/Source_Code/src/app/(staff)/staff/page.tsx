@@ -69,7 +69,7 @@ export default async function StaffDashboardPage() {
         </div>
 
         <div className={styles.quickActions}>
-          <Link href="/staff/simulator" className="btn" style={{ background: '#143f31', color: '#fff', borderColor: '#143f31' }}>
+          <Link href="/staff/simulator" className="btn btn-primary">
             🖥️ Silid OS Simulator
           </Link>
           <Link href="/staff/redeem" className="btn btn-primary">

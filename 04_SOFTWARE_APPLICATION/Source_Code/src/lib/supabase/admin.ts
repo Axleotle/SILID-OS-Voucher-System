@@ -38,6 +38,47 @@ function getTablePK(tableName: string): string {
   return PK_MAP[tableName] || `${tableName}_id`;
 }
 
+function enrichMockRecord(tableName: string, raw: any, store: any): any {
+  if (!raw) return null;
+  const item = { ...raw };
+
+  if (tableName === 'claim_ticket' && item.batch_id) {
+    const batch = store.voucher_batch?.find((b: any) => b.batch_id === item.batch_id);
+    if (batch) {
+      const template = store.voucher_template?.find((t: any) => t.template_id === batch.template_id);
+      item.voucher_batch = { ...batch, voucher_template: template ? { ...template } : null };
+    }
+  } else if (tableName === 'registration') {
+    if (item.batch_id) {
+      const batch = store.voucher_batch?.find((b: any) => b.batch_id === item.batch_id);
+      if (batch) {
+        const template = store.voucher_template?.find((t: any) => t.template_id === batch.template_id);
+        item.voucher_batch = { ...batch, voucher_template: template ? { ...template } : null };
+      }
+    }
+    if (item.student_id) {
+      const student = store.student?.find((s: any) => s.student_id === item.student_id);
+      if (student) item.student = { ...student };
+    }
+    if (item.claim_ticket_id) {
+      const ticket = store.claim_ticket?.find((c: any) => c.claim_ticket_id === item.claim_ticket_id);
+      if (ticket) item.claim_ticket = { ...ticket };
+    }
+    const pv = store.personal_voucher?.find((p: any) => p.registration_id === item.registration_id);
+    if (pv) item.personal_voucher = { ...pv };
+  } else if (tableName === 'voucher_batch' && item.template_id) {
+    const template = store.voucher_template?.find((t: any) => t.template_id === item.template_id);
+    if (template) item.voucher_template = { ...template };
+  } else if (tableName === 'personal_voucher' && item.registration_id) {
+    const reg = store.registration?.find((r: any) => r.registration_id === item.registration_id);
+    if (reg) {
+      item.registration = enrichMockRecord('registration', reg, store);
+    }
+  }
+
+  return item;
+}
+
 /**
  * Builds a Chainable Mock Client matching Supabase Query Builder syntax
  * to support complete offline demonstration without any external database.
@@ -101,11 +142,14 @@ function createMockAdminClient(): any {
           return builder;
         },
         async single() {
-          const item = filtered[0] || null;
+          const raw = filtered[0] || null;
+          const item = raw ? enrichMockRecord(tableName, raw, store) : null;
           return { data: item, error: item ? null : { message: 'Row not found' } };
         },
         async maybeSingle() {
-          return { data: filtered[0] || null, error: null };
+          const raw = filtered[0] || null;
+          const item = raw ? enrichMockRecord(tableName, raw, store) : null;
+          return { data: item, error: null };
         },
         then(resolve: (res: any) => void) {
           if (pendingUpdates) {
@@ -141,7 +185,8 @@ function createMockAdminClient(): any {
           if (isHeadOnly) {
             resolve({ data: null, error: null, count: res.length });
           } else {
-            resolve({ data: res, error: null, count: res.length });
+            const enriched = res.map((r: any) => enrichMockRecord(tableName, r, store));
+            resolve({ data: enriched, error: null, count: res.length });
           }
         },
         insert(rows: any | any[]) {
@@ -155,6 +200,9 @@ function createMockAdminClient(): any {
               [idField]: idValue,
               created_at: row.created_at || new Date().toISOString(),
             };
+            if (tableName === 'registration' && !withId.status_token) {
+              withId.status_token = `token-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+            }
             records.push(withId);
             inserted.push(withId);
           }
@@ -173,10 +221,16 @@ function createMockAdminClient(): any {
                 then(resolve: (val: any) => void) {
                   resolve(result);
                 },
+                catch(reject?: any) {
+                  return this;
+                },
               };
             },
             then(resolve: (val: any) => void) {
               resolve(result);
+            },
+            catch(reject?: any) {
+              return this;
             },
           };
         },
@@ -200,10 +254,16 @@ function createMockAdminClient(): any {
                 then(resolve: (val: any) => void) {
                   resolve(result);
                 },
+                catch(reject?: any) {
+                  return this;
+                },
               };
             },
             then(resolve: (val: any) => void) {
               resolve(result);
+            },
+            catch(reject?: any) {
+              return this;
             },
           };
         },
@@ -215,7 +275,9 @@ function createMockAdminClient(): any {
       if (funcName === 'atomic_redeem_voucher') {
         const pv = store.personal_voucher.find((v) => v.personal_qr_code === params.p_personal_qr_code);
         if (!pv) return { data: null, error: { message: '[VOUCHER_NOT_FOUND] Voucher not found.' } };
-        if (pv.status !== 'Active') return { data: null, error: { message: `[VOUCHER_${pv.status.toUpperCase()}] Voucher is ${pv.status}.` } };
+        if (pv.status !== 'Active' && pv.status !== 'Held') {
+          return { data: null, error: { message: `[VOUCHER_${pv.status.toUpperCase()}] Voucher is ${pv.status}.` } };
+        }
         if (new Date(pv.expiry_date) < new Date()) {
           pv.status = 'Expired';
           return { data: null, error: { message: '[VOUCHER_EXPIRED] Voucher has expired.' } };
@@ -224,6 +286,26 @@ function createMockAdminClient(): any {
         const rid = `red-${Date.now()}`;
         pv.status = 'Redeemed';
 
+        let discountPercent = 20;
+        const reg = store.registration.find((r: any) => r.registration_id === pv.registration_id);
+        const batch = reg ? store.voucher_batch.find((b: any) => b.batch_id === reg.batch_id) : null;
+        const tmpl = batch ? store.voucher_template.find((t: any) => t.template_id === batch.template_id) : null;
+        if (tmpl && tmpl.benefit_value) {
+          discountPercent = Number(tmpl.benefit_value);
+        }
+
+        let gross = 180;
+        if (params.p_line_items) {
+          try {
+            const items = typeof params.p_line_items === 'string' ? JSON.parse(params.p_line_items) : params.p_line_items;
+            if (Array.isArray(items) && items.length > 0) {
+              gross = items.reduce((sum: number, it: any) => sum + (Number(it.unitPrice || it.unit_price || 0) * Number(it.quantity || 1)), 0);
+            }
+          } catch {}
+        }
+        const discount = Math.round((gross * (discountPercent / 100)) * 100) / 100;
+        const net = Math.max(0, Math.round((gross - discount) * 100) / 100);
+
         store.redemption.push({
           redemption_id: rid,
           personal_voucher_id: pv.personal_voucher_id,
@@ -231,9 +313,9 @@ function createMockAdminClient(): any {
           source: params.p_source || 'staff_ui',
           session_ref: params.p_session_ref || null,
           idempotency_key: params.p_idempotency_key || null,
-          gross_amount: 180,
-          discount_amount: 36,
-          net_amount: 144,
+          gross_amount: gross,
+          discount_amount: discount,
+          net_amount: net,
           is_reversed: false,
           redeemed_at: new Date().toISOString(),
         });
@@ -241,10 +323,10 @@ function createMockAdminClient(): any {
         return {
           data: {
             redemption_id: rid,
-            discount_percent: 20,
-            gross_amount: 180,
-            discount_amount: 36,
-            net_amount: 144,
+            discount_percent: discountPercent,
+            gross_amount: gross,
+            discount_amount: discount,
+            net_amount: net,
             batch_used_percent: 0.1,
           },
           error: null,

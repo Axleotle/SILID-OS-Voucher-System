@@ -89,6 +89,12 @@
   font-weight: 700;
 }
 
+.tabButtonActive:hover {
+  color: var(--color-primary-dark);
+  background: var(--color-surface);
+  border-bottom: 3px solid var(--color-primary-dark);
+}
+
 .panelGrid {
   display: grid;
   grid-template-columns: 1fr 1fr;

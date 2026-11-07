@@ -24,12 +24,11 @@ export async function GET(req: NextRequest) {
   let query = admin
     .from('ledger_outbox')
     .select('*')
-    .eq('status', 'sent')
-    .order('sent_at', { ascending: true })
+    .order('created_at', { ascending: false })
     .limit(limit);
 
   if (since) {
-    query = query.gt('sent_at', since);
+    query = query.gt('created_at', since);
   }
 
   const { data, error } = await query;

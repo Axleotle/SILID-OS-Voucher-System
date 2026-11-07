@@ -1,6 +1,7 @@
 import React from 'react';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createTemplateAction, toggleTemplateStatusAction } from './actions';
+import { SubmitButton } from '@/components/staff/SubmitButton';
 import styles from './templates.module.css';
 
 export const metadata = {
@@ -125,9 +126,11 @@ export default async function TemplatesPage() {
           </label>
 
           <div className={styles.formFull} style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
-            <button type="submit" className="btn btn-primary" style={{ minWidth: 200 }}>
-              Save & Make Available
-            </button>
+            <SubmitButton
+              label="Save & Make Available"
+              loadingLabel="Saving Template…"
+              style={{ minWidth: 200, height: 44, fontWeight: 700 }}
+            />
           </div>
         </form>
       </details>

@@ -46,7 +46,7 @@ Browse to:
 
 > **Testing Architecture & Demonstration Modes:**  
 > Detailed guide on running in **Local Simulator Mode** vs. **Production Companion Mode** is documented in [`04_SOFTWARE_APPLICATION/COMPANION_MODE_GUIDE.md`](file:///c:/Users/axle/Downloads/3rd%20Yr%20-%201st%20Sem/esdi/SILID%20OS%20Voucher%20System/04_SOFTWARE_APPLICATION/COMPANION_MODE_GUIDE.md).  
-> For the complete 18-scenario testing walkthrough, see [`04_SOFTWARE_APPLICATION/TEST_CASES.md`](file:///c:/Users/axle/Downloads/3rd%20Yr%20-%201st%20Sem/esdi/SILID%20OS%20Voucher%20System/04_SOFTWARE_APPLICATION/TEST_CASES.md).
+> For the complete 75 test case specification and step-by-step manual testing guide, see [`04_SOFTWARE_APPLICATION/TEST_CASES.md`](file:///c:/Users/axle/Downloads/3rd%20Yr%20-%201st%20Sem/esdi/SILID%20OS%20Voucher%20System/04_SOFTWARE_APPLICATION/TEST_CASES.md).
 
 ---
 
