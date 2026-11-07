@@ -44,9 +44,26 @@ export async function approveRegistrationAction(registrationId: string) {
     return { success: false, error: `Cannot approve registration with status '${reg.status}'.` };
   }
 
-  const student = reg.student as any;
-  const batch = reg.voucher_batch as any;
-  const template = batch.voucher_template as any;
+  // Resiliently resolve student, batch, and template (compatible with both PostgreSQL and Mock Store)
+  let student = reg.student as any;
+  if (!student && reg.student_id) {
+    const { data: s } = await admin.from('student').select('*').eq('student_id', reg.student_id).maybeSingle();
+    student = s;
+  }
+
+  let batch = reg.voucher_batch as any;
+  if (!batch && reg.batch_id) {
+    const { data: b } = await admin.from('voucher_batch').select('*').eq('batch_id', reg.batch_id).maybeSingle();
+    batch = b;
+  }
+
+  let template = batch?.voucher_template as any || batch?.template as any;
+  if (!template && batch?.template_id) {
+    const { data: t } = await admin.from('voucher_template').select('*').eq('template_id', batch.template_id).maybeSingle();
+    template = t;
+  }
+
+  const effectiveDuration = template?.effective_duration || 30;
 
   // 2. Determine reviewing staff
   const { data: staffList } = await admin.from('staff').select('staff_id').limit(1);
@@ -55,7 +72,7 @@ export async function approveRegistrationAction(registrationId: string) {
   // 3. Generate Personal Voucher QR and Expiry Date
   const personalQrData = QRCodeGenerator.generatePersonalQrData();
   const issuedAt = new Date();
-  const expiryDate = calculateExpiryDate(issuedAt, template.effective_duration);
+  const expiryDate = calculateExpiryDate(issuedAt, effectiveDuration);
 
   // 4. Update registration to Approved
   const { error: regUpdateErr } = await admin
@@ -126,7 +143,9 @@ export async function approveRegistrationAction(registrationId: string) {
     },
   });
 
-  revalidatePath('/staff/registrations');
+  try {
+    revalidatePath('/staff/registrations');
+  } catch {}
   return { success: true };
 }
 
@@ -165,6 +184,8 @@ export async function rejectRegistrationAction(registrationId: string, rejection
     afterValue: { rejectionReason: rejectionReason.trim() },
   });
 
-  revalidatePath('/staff/registrations');
+  try {
+    revalidatePath('/staff/registrations');
+  } catch {}
   return { success: true };
 }

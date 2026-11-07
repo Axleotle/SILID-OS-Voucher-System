@@ -110,6 +110,8 @@ export async function createBatchAction(formData: FormData) {
     },
   });
 
-  revalidatePath('/staff/batches');
+  try {
+    revalidatePath('/staff/batches');
+  } catch {}
   return { success: true, batchId: batch.batch_id };
 }

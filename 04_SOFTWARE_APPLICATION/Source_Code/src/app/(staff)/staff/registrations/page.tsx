@@ -45,7 +45,52 @@ async function getRegistrations(statusFilter?: string) {
   }
 
   const { data } = await query;
-  return data || [];
+  const list = data || [];
+
+  // Resilient enrichment for mock mode / PostgREST foreign key joins
+  const enriched = await Promise.all(
+    list.map(async (reg: any) => {
+      let student = reg.student;
+      if (!student && reg.student_id) {
+        const { data: s } = await admin.from('student').select('*').eq('student_id', reg.student_id).maybeSingle();
+        student = s;
+      }
+
+      let batch = reg.voucher_batch;
+      if (!batch && reg.batch_id) {
+        const { data: b } = await admin.from('voucher_batch').select('*').eq('batch_id', reg.batch_id).maybeSingle();
+        batch = b;
+      }
+
+      let template = batch?.voucher_template || batch?.template;
+      if (batch && !template && batch.template_id) {
+        const { data: t } = await admin.from('voucher_template').select('*').eq('template_id', batch.template_id).maybeSingle();
+        template = t;
+      }
+
+      let ticket = reg.claim_ticket;
+      if (!ticket && reg.claim_ticket_id) {
+        const { data: tk } = await admin.from('claim_ticket').select('*').eq('claim_ticket_id', reg.claim_ticket_id).maybeSingle();
+        ticket = tk;
+      }
+
+      let pv = reg.personal_voucher;
+      if (!pv) {
+        const { data: p } = await admin.from('personal_voucher').select('*').eq('registration_id', reg.registration_id).maybeSingle();
+        pv = p;
+      }
+
+      return {
+        ...reg,
+        student,
+        voucher_batch: batch ? { ...batch, voucher_template: template } : null,
+        claim_ticket: ticket,
+        personal_voucher: pv,
+      };
+    })
+  );
+
+  return enriched;
 }
 
 export default async function RegistrationsPage({

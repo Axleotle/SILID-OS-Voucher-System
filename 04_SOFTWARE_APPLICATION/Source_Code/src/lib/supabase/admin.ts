@@ -19,6 +19,25 @@ export function isRealSupabaseConfigured(): boolean {
   return true;
 }
 
+const PK_MAP: Record<string, string> = {
+  voucher_template: 'template_id',
+  voucher_batch: 'batch_id',
+  personal_voucher: 'personal_voucher_id',
+  claim_ticket: 'claim_ticket_id',
+  registration: 'registration_id',
+  student: 'student_id',
+  redemption: 'redemption_id',
+  legacy_voucher: 'legacy_id',
+  audit_log: 'audit_id',
+  api_key: 'api_key_id',
+  feature_flag: 'flag_id',
+  staff: 'staff_id',
+};
+
+function getTablePK(tableName: string): string {
+  return PK_MAP[tableName] || `${tableName}_id`;
+}
+
 /**
  * Builds a Chainable Mock Client matching Supabase Query Builder syntax
  * to support complete offline demonstration without any external database.
@@ -29,6 +48,7 @@ function createMockAdminClient(): any {
   return {
     from(tableName: string) {
       const records = (store as any)[tableName] || [];
+      const pkField = getTablePK(tableName);
       let filtered = [...records];
       let limitCount: number | null = null;
       let orderField: string | null = null;
@@ -97,9 +117,9 @@ function createMockAdminClient(): any {
           }
 
           if (isDelete) {
-            const idsToDelete = new Set(filtered.map((f: any) => f[`${tableName}_id`] || f.id));
+            const idsToDelete = new Set(filtered.map((f: any) => f[pkField] || f.id));
             for (let i = records.length - 1; i >= 0; i--) {
-              if (idsToDelete.has(records[i][`${tableName}_id`] || records[i].id)) {
+              if (idsToDelete.has(records[i][pkField] || records[i].id)) {
                 records.splice(i, 1);
               }
             }
@@ -124,11 +144,11 @@ function createMockAdminClient(): any {
             resolve({ data: res, error: null, count: res.length });
           }
         },
-        async insert(rows: any | any[]) {
+        insert(rows: any | any[]) {
           const rawRows = Array.isArray(rows) ? rows : [rows];
           const inserted: any[] = [];
           for (const row of rawRows) {
-            const idField = `${tableName}_id`;
+            const idField = pkField;
             const idValue = row[idField] || row.id || `mock-${tableName}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
             const withId = {
               ...row,
@@ -138,27 +158,54 @@ function createMockAdminClient(): any {
             records.push(withId);
             inserted.push(withId);
           }
+          const result = { data: Array.isArray(rows) ? inserted : inserted[0], error: null };
           return {
-            data: Array.isArray(rows) ? inserted : inserted[0],
-            error: null,
+            ...result,
             select() {
               return {
+                ...result,
                 async single() {
                   return { data: inserted[0], error: null };
                 },
+                async maybeSingle() {
+                  return { data: inserted[0] || null, error: null };
+                },
+                then(resolve: (val: any) => void) {
+                  resolve(result);
+                },
               };
+            },
+            then(resolve: (val: any) => void) {
+              resolve(result);
             },
           };
         },
-        async upsert(row: any) {
-          const keyField = `${tableName}_id`;
+        upsert(row: any) {
+          const keyField = pkField;
           const existing = records.find((r: any) => r[keyField] === row[keyField]);
           if (existing) {
             Object.assign(existing, row, { updated_at: new Date().toISOString() });
           } else {
             records.push({ ...row, created_at: new Date().toISOString() });
           }
-          return { error: null };
+          const result = { data: row, error: null };
+          return {
+            ...result,
+            select() {
+              return {
+                ...result,
+                async single() {
+                  return { data: row, error: null };
+                },
+                then(resolve: (val: any) => void) {
+                  resolve(result);
+                },
+              };
+            },
+            then(resolve: (val: any) => void) {
+              resolve(result);
+            },
+          };
         },
       };
 

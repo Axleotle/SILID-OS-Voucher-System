@@ -50,9 +50,24 @@ async function getBatchesAndTemplates(selectedBatchId?: string) {
     }
   }
 
+  const rawBatches = batchesRes.data || [];
+  const enrichedBatches = await Promise.all(
+    rawBatches.map(async (b: any) => {
+      let tmpl = b.voucher_template;
+      if (!tmpl && b.template_id) {
+        const { data: t } = await admin.from('voucher_template').select('template_name, benefit_value').eq('template_id', b.template_id).maybeSingle();
+        tmpl = t;
+      }
+      return {
+        ...b,
+        voucher_template: tmpl,
+      };
+    })
+  );
+
   return {
     templates: templatesRes.data || [],
-    batches: batchesRes.data || [],
+    batches: enrichedBatches,
     selectedTickets,
   };
 }

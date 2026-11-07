@@ -73,7 +73,9 @@ export async function createTemplateAction(formData: FormData) {
     afterValue: created,
   });
 
-  revalidatePath('/staff/templates');
+  try {
+    revalidatePath('/staff/templates');
+  } catch {}
   return { success: true };
 }
 
@@ -97,6 +99,8 @@ export async function toggleTemplateStatusAction(templateId: string, currentStat
     afterValue: { status: nextStatus },
   });
 
-  revalidatePath('/staff/templates');
+  try {
+    revalidatePath('/staff/templates');
+  } catch {}
   return { success: true };
 }

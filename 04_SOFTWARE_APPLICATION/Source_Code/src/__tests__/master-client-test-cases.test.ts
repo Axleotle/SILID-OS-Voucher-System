@@ -6,6 +6,7 @@ import { PercentageDiscountStrategy } from '../lib/pricing/percentage';
 import { calculateExpiryDate, getBusinessDayPHT, formatDisplayPHT, isExpired } from '../lib/timezone';
 import { QRCodeGenerator } from '../lib/qr';
 import { detectBatchAnomaly, detectRedemptionAnomalies } from '../lib/audit';
+import { approveRegistrationAction } from '../app/(staff)/staff/registrations/actions';
 import crypto from 'crypto';
 
 describe('Master Client Acceptance Test Suite (TC-01 through TC-75)', () => {
@@ -76,6 +77,19 @@ describe('Master Client Acceptance Test Suite (TC-01 through TC-75)', () => {
 
       expect(error).toBeNull();
       expect(data.benefit_value).toBe(100);
+    });
+
+    it('supports chained .insert().select().single() like PostgREST', async () => {
+      const { data, error } = await admin.from('voucher_template').insert({
+        template_name: 'Test Chained Insert',
+        benefit_value: 30,
+        status: 'Active',
+      }).select().single();
+
+      expect(error).toBeNull();
+      expect(data).toBeDefined();
+      expect(data.template_id).toBeDefined();
+      expect(data.template_name).toBe('Test Chained Insert');
     });
 
     it('TC-08: Rejects benefit values outside 1-100 range', () => {
@@ -206,6 +220,14 @@ describe('Master Client Acceptance Test Suite (TC-01 through TC-75)', () => {
       const status: string = 'Rejected';
       const personalVoucherCount = status === 'Approved' ? 1 : 0;
       expect(personalVoucherCount).toBe(0);
+    });
+
+    it('TC-28: Executes approveRegistrationAction to approve Casey registration', async () => {
+      const res = await approveRegistrationAction('e0000000-0000-0000-0000-000000000002');
+      expect(res.success).toBe(true);
+
+      const approvedReg = store.registration.find((r: any) => r.registration_id === 'e0000000-0000-0000-0000-000000000002');
+      expect(approvedReg.status).toBe('Approved');
     });
   });
 
