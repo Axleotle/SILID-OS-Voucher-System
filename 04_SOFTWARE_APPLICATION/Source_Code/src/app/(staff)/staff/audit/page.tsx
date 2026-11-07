@@ -78,10 +78,10 @@ export default async function AuditPage({
                 </td>
               </tr>
             ) : (
-              logs.map((log: any) => {
+              logs.map((log: any, idx: number) => {
                 const hasAnomaly = Array.isArray(log.anomaly_flags) && log.anomaly_flags.length > 0;
                 return (
-                  <tr key={log.audit_id} style={{ borderBottom: '1px solid #f0eae0' }}>
+                  <tr key={log.audit_id || log.id || `audit-${idx}`} style={{ borderBottom: '1px solid #f0eae0' }}>
                     <td style={{ padding: '14px 16px', whiteSpace: 'nowrap' }}>
                       {formatDisplayPHT(log.created_at)}
                     </td>

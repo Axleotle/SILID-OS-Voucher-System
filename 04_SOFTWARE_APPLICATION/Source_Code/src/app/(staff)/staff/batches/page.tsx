@@ -2,6 +2,7 @@ import React from 'react';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createBatchAction } from './actions';
 import { QRCodeGenerator } from '@/lib/qr';
+import { PrintButton } from '@/components/staff/PrintButton';
 import styles from './batches.module.css';
 
 export const metadata = {
@@ -86,12 +87,19 @@ export default async function BatchesPage({
         <form action={createBatchAction as any} className={styles.formGrid} style={{ marginTop: 16 }}>
           <label>
             Voucher Template *
-            <select name="templateId" required defaultValue={templates[0]?.template_id}>
-              {templates.map((t: any) => (
-                <option key={t.template_id} value={t.template_id}>
-                  {t.template_name} ({t.benefit_value}% off)
-                </option>
-              ))}
+            <select name="templateId" required defaultValue={templates[0]?.template_id || ''}>
+              {templates.length === 0 ? (
+                <option value="" disabled>No active templates found — create one in Templates</option>
+              ) : (
+                templates.map((t: any, idx: number) => {
+                  const id = t.template_id || t.id || `tmpl-${idx}`;
+                  return (
+                    <option key={id} value={id}>
+                      {t.template_name} ({t.benefit_value}% off)
+                    </option>
+                  );
+                })
+              )}
             </select>
           </label>
 
@@ -184,21 +192,13 @@ export default async function BatchesPage({
               <a href="/staff/batches" className="btn">
                 Close Preview
               </a>
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={() => {
-                  if (typeof window !== 'undefined') window.print();
-                }}
-              >
-                🖨️ Print Claim Cards
-              </button>
+              <PrintButton />
             </div>
           </div>
 
           <div className={styles.ticketGrid}>
-            {selectedTickets.map((ticket: any) => (
-              <div key={ticket.claim_ticket_id} className={styles.ticketCard}>
+            {selectedTickets.map((ticket: any, idx: number) => (
+              <div key={ticket.claim_ticket_id || ticket.id || `t-${idx}`} className={styles.ticketCard}>
                 <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-primary)', letterSpacing: '0.1em' }}>
                   SILID MALOLOS
                 </div>
@@ -233,10 +233,10 @@ export default async function BatchesPage({
           </div>
         ) : (
           <div className={styles.batchesList}>
-            {batches.map((b: any) => {
+            {batches.map((b: any, idx: number) => {
               const tmpl = b.voucher_template;
               return (
-                <div key={b.batch_id} className={styles.batchRow}>
+                <div key={b.batch_id || b.id || `batch-${idx}`} className={styles.batchRow}>
                   <div className={styles.batchInfo}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <strong style={{ fontSize: '1.1rem' }}>{b.event_name}</strong>

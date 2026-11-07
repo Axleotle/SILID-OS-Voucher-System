@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { reverseRedemption } from '@/lib/voucher-validator';
 import { formatDisplayPHT, getBusinessDayPHT } from '@/lib/timezone';
+import { ExportCsvButton } from '@/components/staff/ExportCsvButton';
 import { revalidatePath } from 'next/cache';
 
 export const metadata = {
@@ -83,42 +84,37 @@ export default async function ReportsPage({
 
         {/* CSV Export Button */}
         <div>
-          <button
-            type="button"
-            className="btn btn-primary"
-            onClick={() => {
-              if (typeof window !== 'undefined') {
-                const headers = ['Redemption ID', 'Business Day', 'PHT Timestamp', 'Voucher Code', 'Student Name', 'Campaign / Batch', 'Status', 'Source', 'Session Ref'];
-                const rows = redemptions.map((r: any) => {
-                  const pv = r.personal_voucher;
-                  const reg = pv?.registration;
-                  const student = reg?.student;
-                  const b = reg?.voucher_batch;
-                  return [
-                    r.redemption_id,
-                    getBusinessDayPHT(r.redeemed_at),
-                    formatDisplayPHT(r.redeemed_at),
-                    pv?.personal_qr_code || '',
-                    student?.student_name || '',
-                    b?.event_name || '',
-                    r.is_reversed ? 'Reversed' : 'Valid',
-                    r.source,
-                    r.session_ref || '',
-                  ];
-                });
-                const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((e: any[]) => e.map((val: any) => `"${val}"`).join(','))].join('\n');
-                const encodedUri = encodeURI(csvContent);
-                const link = document.createElement('a');
-                link.setAttribute('href', encodedUri);
-                link.setAttribute('download', `silid_voucher_report_${getBusinessDayPHT()}.csv`);
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-              }
-            }}
-          >
-            📥 Export CSV Report (Matching Screen)
-          </button>
+          <ExportCsvButton
+            headers={[
+              'Redemption ID',
+              'Business Day',
+              'PHT Timestamp',
+              'Voucher Code',
+              'Student Name',
+              'Campaign / Batch',
+              'Status',
+              'Source',
+              'Session Ref',
+            ]}
+            rows={redemptions.map((r: any) => {
+              const pv = r.personal_voucher;
+              const reg = pv?.registration;
+              const student = reg?.student;
+              const b = reg?.voucher_batch;
+              return [
+                r.redemption_id,
+                getBusinessDayPHT(r.redeemed_at),
+                formatDisplayPHT(r.redeemed_at),
+                pv?.personal_qr_code || '',
+                student?.student_name || '',
+                b?.event_name || '',
+                r.is_reversed ? 'Reversed' : 'Valid',
+                r.source,
+                r.session_ref || '',
+              ];
+            })}
+            filename={`silid_voucher_report_${getBusinessDayPHT()}.csv`}
+          />
         </div>
       </div>
 
@@ -129,11 +125,14 @@ export default async function ReportsPage({
             Filter by Campaign:
             <select name="batch" defaultValue={batchParam || 'all'} style={{ minWidth: 220 }}>
               <option value="all">All Campaigns</option>
-              {batches.map((b: any) => (
-                <option key={b.batch_id} value={b.batch_id}>
-                  {b.event_name}
-                </option>
-              ))}
+              {batches.map((b: any, idx: number) => {
+                const bId = b.batch_id || b.id || `batch-${idx}`;
+                return (
+                  <option key={bId} value={b.batch_id || b.id}>
+                    {b.event_name}
+                  </option>
+                );
+              })}
             </select>
           </label>
           <button type="submit" className="btn" style={{ height: 44, marginTop: 18 }}>
@@ -189,7 +188,7 @@ export default async function ReportsPage({
                 </td>
               </tr>
             ) : (
-              redemptions.map((r: any) => {
+              redemptions.map((r: any, idx: number) => {
                 const pv = r.personal_voucher;
                 const reg = pv?.registration;
                 const student = reg?.student;
@@ -197,7 +196,7 @@ export default async function ReportsPage({
                 const tmpl = batch?.voucher_template;
 
                 return (
-                  <tr key={r.redemption_id} style={{ borderBottom: '1px solid #f0eae0' }}>
+                  <tr key={r.redemption_id || `red-${idx}`} style={{ borderBottom: '1px solid #f0eae0' }}>
                     <td style={{ padding: '14px 16px', whiteSpace: 'nowrap' }}>
                       {formatDisplayPHT(r.redeemed_at)}
                     </td>

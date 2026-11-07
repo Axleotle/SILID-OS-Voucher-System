@@ -141,11 +141,11 @@ export default async function TemplatesPage() {
           </div>
         ) : (
           <div className={styles.grid}>
-            {templates.map((tpl: any) => {
+            {templates.map((tpl: any, idx: number) => {
               const isInactive = tpl.status === 'Inactive';
               return (
                 <div
-                  key={tpl.template_id}
+                  key={tpl.template_id || tpl.id || `template-${idx}`}
                   className={`${styles.templateCard} ${isInactive ? styles.templateCardInactive : ''}`}
                 >
                   <div>

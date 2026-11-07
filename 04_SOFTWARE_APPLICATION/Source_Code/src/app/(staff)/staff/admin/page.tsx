@@ -45,9 +45,9 @@ export default async function AdminPage() {
         </div>
 
         <div style={{ display: 'grid', gap: 10 }}>
-          {flags.map((flag: any) => (
+          {flags.map((flag: any, idx: number) => (
             <div
-              key={flag.flag_id}
+              key={flag.flag_id || flag.flag_key || `flag-${idx}`}
               style={{
                 display: 'flex',
                 justifyContent: 'space-between',
@@ -138,8 +138,8 @@ export default async function AdminPage() {
                   </td>
                 </tr>
               ) : (
-                keys.map((k: any) => (
-                  <tr key={k.api_key_id} style={{ borderBottom: '1px solid #f0eae0' }}>
+                keys.map((k: any, idx: number) => (
+                  <tr key={k.api_key_id || `key-${idx}`} style={{ borderBottom: '1px solid #f0eae0' }}>
                     <td style={{ padding: '12px 14px', fontWeight: 600 }}>{k.key_name}</td>
                     <td style={{ padding: '12px 14px' }}>{k.rate_limit_per_minute} req/min</td>
                     <td style={{ padding: '12px 14px' }}>{formatDisplayPHT(k.created_at)}</td>
@@ -183,9 +183,9 @@ export default async function AdminPage() {
         </div>
 
         <div style={{ display: 'grid', gap: 8 }}>
-          {staffMembers.map((staff: any) => (
+          {staffMembers.map((staff: any, idx: number) => (
             <div
-              key={staff.staff_id}
+              key={staff.staff_id || `staff-${idx}`}
               style={{
                 display: 'flex',
                 justifyContent: 'space-between',

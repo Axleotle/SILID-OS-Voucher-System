@@ -158,9 +158,9 @@ export default async function VoucherDetailPage({
         {redemptions.length === 0 ? (
           <p style={{ color: 'var(--color-muted)', margin: 0 }}>Voucher has not been redeemed yet.</p>
         ) : (
-          redemptions.map((red: any) => (
+          redemptions.map((red: any, idx: number) => (
             <div
-              key={red.redemption_id}
+              key={red.redemption_id || `red-${idx}`}
               style={{
                 padding: 14,
                 borderRadius: 'var(--radius-md)',

@@ -125,22 +125,26 @@ function createMockAdminClient(): any {
           }
         },
         async insert(rows: any | any[]) {
-          const toAdd = Array.isArray(rows) ? rows : [rows];
-          for (const row of toAdd) {
+          const rawRows = Array.isArray(rows) ? rows : [rows];
+          const inserted: any[] = [];
+          for (const row of rawRows) {
+            const idField = `${tableName}_id`;
+            const idValue = row[idField] || row.id || `mock-${tableName}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
             const withId = {
-              [`${tableName}_id`]: row[`${tableName}_id`] || `mock-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-              created_at: new Date().toISOString(),
               ...row,
+              [idField]: idValue,
+              created_at: row.created_at || new Date().toISOString(),
             };
             records.push(withId);
+            inserted.push(withId);
           }
           return {
-            data: Array.isArray(rows) ? toAdd : toAdd[0],
+            data: Array.isArray(rows) ? inserted : inserted[0],
             error: null,
             select() {
               return {
                 async single() {
-                  return { data: toAdd[0], error: null };
+                  return { data: inserted[0], error: null };
                 },
               };
             },

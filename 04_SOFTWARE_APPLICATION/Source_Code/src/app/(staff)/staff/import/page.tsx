@@ -109,8 +109,8 @@ export default async function ImportPage() {
                 </td>
               </tr>
             ) : (
-              legacyRecords.map((r: any) => (
-                <tr key={r.legacy_id} style={{ borderBottom: '1px solid #f0eae0' }}>
+              legacyRecords.map((r: any, idx: number) => (
+                <tr key={r.legacy_id || r.id || `legacy-${idx}`} style={{ borderBottom: '1px solid #f0eae0' }}>
                   <td style={{ padding: '12px 14px', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>
                     {r.original_code}
                   </td>

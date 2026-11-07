@@ -103,7 +103,7 @@ export default async function RegistrationsPage({
             No registrations found under status '{currentFilter}'.
           </div>
         ) : (
-          registrations.map((reg: any) => {
+          registrations.map((reg: any, idx: number) => {
             const student = reg.student;
             const batch = reg.voucher_batch;
             const template = batch?.voucher_template;
@@ -111,7 +111,7 @@ export default async function RegistrationsPage({
             const pv = Array.isArray(reg.personal_voucher) ? reg.personal_voucher[0] : reg.personal_voucher;
 
             return (
-              <div key={reg.registration_id} className={styles.cardRow}>
+              <div key={reg.registration_id || reg.id || `reg-${idx}`} className={styles.cardRow}>
                 <div className={styles.studentInfo}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <strong style={{ fontSize: '1.05rem' }}>{student?.student_name}</strong>
