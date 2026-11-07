@@ -1,0 +1,159 @@
+.container {
+  display: grid;
+  gap: 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.banner {
+  background: linear-gradient(135deg, #143f31 0%, #1f5d46 100%);
+  color: #fff;
+  border-radius: var(--radius-lg);
+  padding: 24px 28px;
+  box-shadow: var(--shadow-md);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.bannerContent h1 {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  margin: 0 0 6px 0;
+  letter-spacing: -0.01em;
+}
+
+.bannerContent p {
+  margin: 0;
+  font-size: 0.92rem;
+  color: #d1e7dd;
+  max-width: 720px;
+  line-height: 1.45;
+}
+
+.bannerBadge {
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bannerBadgeDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #34d399;
+  box-shadow: 0 0 8px #34d399;
+}
+
+.tabList {
+  display: flex;
+  gap: 8px;
+  border-bottom: 2px solid var(--color-border);
+  padding-bottom: 2px;
+  overflow-x: auto;
+}
+
+.tabButton {
+  padding: 12px 18px;
+  border: none;
+  background: none;
+  font-family: var(--font-ui);
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--color-muted);
+  cursor: pointer;
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.tabButton:hover {
+  color: var(--color-ink);
+  background: rgba(31, 93, 70, 0.05);
+}
+
+.tabButtonActive {
+  color: var(--color-primary);
+  background: var(--color-surface);
+  border-bottom: 3px solid var(--color-primary);
+  font-weight: 700;
+}
+
+.panelGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+@media (max-width: 880px) {
+  .panelGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.formCard {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  box-shadow: var(--shadow-sm);
+  display: grid;
+  gap: 18px;
+}
+
+.resultCard {
+  background: #181d19;
+  color: #e5ece7;
+  border: 1px solid #2d3830;
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  display: grid;
+  gap: 12px;
+  overflow-x: auto;
+}
+
+.receiptPaper {
+  background: #fffdf5;
+  color: #2b2721;
+  border: 1px dashed #d1c8b4;
+  padding: 20px;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  line-height: 1.6;
+}
+
+.receiptHeader {
+  text-align: center;
+  border-bottom: 1px dashed #c0b7a0;
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+}
+
+.receiptRow {
+  display: flex;
+  justify-content: space-between;
+}
+
+.receiptDivider {
+  border-bottom: 1px dashed #c0b7a0;
+  margin: 10px 0;
+}
+
+.receiptTotal {
+  font-weight: 700;
+  font-size: 1rem;
+}

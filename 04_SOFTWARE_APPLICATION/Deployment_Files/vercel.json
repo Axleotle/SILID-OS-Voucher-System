@@ -1,0 +1,14 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
+  "crons": [
+    {
+      "path": "/api/cron/expire-vouchers",
+      "schedule": "0 16 * * *"
+    },
+    {
+      "path": "/api/cron/process-outbox",
+      "schedule": "*/5 * * * *"
+    }
+  ]
+}

@@ -1,0 +1,86 @@
+.scene {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 40px 16px 80px;
+  background: var(--color-background);
+}
+
+.card {
+  width: min(560px, 100%);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: clamp(24px, 5vw, 44px);
+  box-shadow: var(--shadow-lg);
+}
+
+.brand {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.brandWordmark {
+  display: block;
+  font-family: var(--font-display);
+  font-size: clamp(2.4rem, 6vw, 3.6rem);
+  font-weight: 600;
+  letter-spacing: 0.25em;
+  color: var(--color-primary);
+  line-height: 1;
+}
+
+.brandLocation {
+  display: block;
+  font-size: 0.72rem;
+  letter-spacing: 0.45em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+  margin-top: 4px;
+}
+
+.title {
+  text-align: center;
+  font-size: clamp(1.4rem, 3vw, 1.9rem);
+  margin-bottom: 6px;
+}
+
+.benefitBadge {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 12px auto 20px;
+  padding: 8px 18px;
+  background: var(--color-primary);
+  color: #ffffff;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  width: fit-content;
+}
+
+.eventDetailsBox {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding: 16px 18px;
+  background: #f7f4ea;
+  border-radius: var(--radius-md);
+  margin-bottom: 24px;
+}
+
+.alertBox {
+  padding: 16px;
+  border-radius: var(--radius-md);
+  margin-top: 18px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  text-align: center;
+}
+
+.alertError {
+  background: var(--color-danger-bg);
+  border: 1px solid var(--color-danger-border);
+  color: var(--color-danger);
+}

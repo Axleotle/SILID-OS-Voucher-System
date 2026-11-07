@@ -1,0 +1,258 @@
+openapi: 3.0.3
+info:
+  title: SILID Voucher Service API
+  description: |
+    Versioned REST API for SILID Malolos study hub voucher service.
+    Called by Silid OS at Start Session, Active Sessions, and Checkout.
+  version: 1.0.0
+servers:
+  - url: https://vouchers.silid.ph/api
+    description: Production Server
+  - url: http://localhost:3000/api
+    description: Local Development Server
+
+security:
+  - ApiKeyAuth: []
+
+paths:
+  /health:
+    get:
+      summary: Fast health probe
+      description: Returns service uptime status without touching database.
+      security: []
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, example: "ok" }
+                  service: { type: string, example: "silid-voucher-service" }
+                  version: { type: string, example: "1.0.0" }
+                  timestamp: { type: string, format: date-time }
+
+  /v1/vouchers/validate:
+    post:
+      summary: Validate voucher eligibility & calculate discounts
+      description: |
+        Called by Silid OS at session check-in or checkout.
+        Evaluates active status, expiry, batch cap, excluded items, and stacking rules.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - personal_qr_code
+              properties:
+                personal_qr_code:
+                  type: string
+                  example: "PV-A1B2C3D4E5F6"
+                member_ref:
+                  type: string
+                  example: "MEM-9821"
+                session_ref:
+                  type: string
+                  example: "SES-20261106-001"
+                has_other_promotions:
+                  type: boolean
+                  default: false
+                  description: "Must be false. Vouchers cannot stack with other promotions."
+                line_items:
+                  type: array
+                  items:
+                    type: object
+                    required:
+                      - productCode
+                      - productName
+                      - quantity
+                      - unitPrice
+                    properties:
+                      productCode: { type: string, example: "FP_DAILY" }
+                      productName: { type: string, example: "Daily Focus Pass" }
+                      quantity: { type: number, example: 1 }
+                      unitPrice: { type: number, example: 180.00 }
+      responses:
+        '200':
+          description: Eligibility evaluation result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  eligible: { type: boolean, example: true }
+                  reason_code: { type: string, example: "NO_STACKING" }
+                  message: { type: string }
+                  discount_percent: { type: number, example: 20 }
+                  gross_amount: { type: number, example: 180.00 }
+                  discount_amount: { type: number, example: 36.00 }
+                  net_amount: { type: number, example: 144.00 }
+                  expiry_date: { type: string, format: date-time }
+                  response_ms: { type: number, example: 45 }
+
+  /v1/vouchers/redeem:
+    post:
+      summary: Atomically redeem a personal voucher
+      description: |
+        Atomically locks batch row and voucher row, validates conditions,
+        creates a Redemption record, and transitions voucher to Redeemed.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - personal_qr_code
+              properties:
+                personal_qr_code: { type: string, example: "PV-A1B2C3D4E5F6" }
+                idempotency_key: { type: string, example: "idemp-checkout-9812" }
+                session_ref: { type: string, example: "SES-20261106-001" }
+                has_other_promotions: { type: boolean, default: false }
+                line_items:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      productCode: { type: string }
+                      productName: { type: string }
+                      quantity: { type: number }
+                      unitPrice: { type: number }
+      responses:
+        '200':
+          description: Voucher successfully redeemed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  redemption_id: { type: string, format: uuid }
+                  receipt_text: { type: string }
+                  gross_amount: { type: number }
+                  discount_amount: { type: number }
+                  net_amount: { type: number }
+        '422':
+          description: Redemption disapproved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: false }
+                  reason_code: { type: string, example: "VOUCHER_EXPIRED" }
+                  message: { type: string }
+
+  /v1/vouchers/hold:
+    post:
+      summary: Hold voucher for open session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - personal_qr_code
+                - session_ref
+              properties:
+                personal_qr_code: { type: string }
+                session_ref: { type: string }
+                idempotency_key: { type: string }
+      responses:
+        '200':
+          description: Voucher held successfully
+
+  /v1/vouchers/release:
+    post:
+      summary: Release held voucher
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - personal_qr_code
+                - session_ref
+              properties:
+                personal_qr_code: { type: string }
+                session_ref: { type: string }
+      responses:
+        '200':
+          description: Voucher returned to Active status
+
+  /v1/vouchers/reverse:
+    post:
+      summary: Reverse an earlier redemption
+      description: |
+        Marks redemption as reversed, restores voucher to Active,
+        and deducts scan from batch cap.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - redemption_id
+                - reversal_reason
+              properties:
+                redemption_id: { type: string, format: uuid }
+                reversal_reason: { type: string, example: "Session voided / customer refunded" }
+      responses:
+        '200':
+          description: Reversal completed
+
+  /v1/vouchers/offline-sync:
+    post:
+      summary: Submit offline redemptions for reconciliation
+      description: Processes batch of offline redemptions recorded while internet was down.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - entries
+              properties:
+                entries:
+                  type: array
+                  items:
+                    type: object
+                    required:
+                      - personal_qr_code
+                      - idempotency_key
+                    properties:
+                      personal_qr_code: { type: string }
+                      idempotency_key: { type: string }
+                      session_ref: { type: string }
+      responses:
+        '200':
+          description: Offline sync reconciliation summary
+
+  /v1/ledger/pull:
+    get:
+      summary: Pull outbox ledger events
+      parameters:
+        - name: since
+          in: query
+          schema: { type: string, format: date-time }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 50 }
+      responses:
+        '200':
+          description: List of audited ledger events
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: Cryptographic API Key assigned to Silid OS
